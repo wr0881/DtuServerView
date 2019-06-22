@@ -76,6 +76,7 @@ class DtuServer extends Component {
       .then(response => {
         if (response.data.code === 0) { // 服务已启动
           this.setState({ terminalData: response.data.data });
+          console.log(this.state.terminalData);
         } else { // 服务未启动
           console.log("该服务下暂无终端");
         }

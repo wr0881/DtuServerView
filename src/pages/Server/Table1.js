@@ -1,3 +1,4 @@
+/* eslint-disable no-unreachable */
 /* eslint-disable no-unneeded-ternary */
 /* eslint-disable array-callback-return */
 /* eslint-disable consistent-return */
@@ -28,6 +29,7 @@
 import React,{Component} from 'react';
 import {Card,Table,Form, Input, Divider, Select, Button} from 'antd';
 import data from './data';
+import axios from '@/services/axios';
 
 const FormItem = Form.Item;
 const EditableContext = React.createContext();
@@ -218,7 +220,8 @@ class Table1 extends Component {
     componentDidMount() {
         this.initRowType(data.getList);
     }
-
+    
+    // 初始化
     initRowType(data) {
         for(let item of data){
             item['type'] = 'view';
@@ -235,6 +238,9 @@ class Table1 extends Component {
             isRowOpen,
             data: newData
         });
+        console.log(this.state.data);
+        console.log(this.state.isRowOpen);
+
     }
 
     // 新增数据(已实现)
@@ -246,7 +252,7 @@ class Table1 extends Component {
             connectStatus: '',
             type: 'new',
             id: '',
-            key: ''
+            key: Math.random(),
         }
         data.push(newRecord);
         this.updateDataSource(data);
@@ -285,7 +291,7 @@ class Table1 extends Component {
             }
             values.existence= values.existence == "1" ? true : false;
             let updateData = { ...record, ...values };
-
+            console.log('修改后的数据:',updateData);
             // console.log(updateData);
             setTimeout(res => {
             // 将updateData更新到dataSource
@@ -296,9 +302,13 @@ class Table1 extends Component {
                 }
                 return item;
             });
+            console.log(newData);
+            // 修改数据传给后台
+
             this.updateDataSource(newData);
+            console.log(this.state.data);
             // notification["success"]({ message: "修改成功！" });
-            console.log('修改成功!');
+            console.log('修改成功！结束编辑！');
             });
         });
     }

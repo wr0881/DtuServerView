@@ -1,366 +1,445 @@
+/* eslint-disable class-methods-use-this */
+/* eslint-disable react/no-multi-comp */
+/* eslint-disable react/jsx-no-undef */
+/* eslint-disable no-unreachable */
+/* eslint-disable no-unneeded-ternary */
+/* eslint-disable array-callback-return */
+/* eslint-disable consistent-return */
+/* eslint-disable no-else-return */
+/* eslint-disable lines-between-class-members */
+/* eslint-disable no-useless-constructor */
+/* eslint-disable react/sort-comp */
+/* eslint-disable eqeqeq */
+/* eslint-disable dot-notation */
+/* eslint-disable prefer-const */
+/* eslint-disable no-restricted-syntax */
+/* eslint-disable no-shadow */
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-script-url */
 /* eslint-disable react/no-unused-state */
 /* eslint-disable no-undef */
-/* eslint-disable no-unneeded-ternary */
+/* eslint-disable react/jsx-no-bind */
+/* eslint-disable func-names */
+/* eslint-disable react/jsx-closing-bracket-location */
 /* eslint-disable react/jsx-indent-props */
-/* eslint-disable no-useless-return */
-/* eslint-disable no-console */
-/* eslint-disable class-methods-use-this */
-/* eslint-disable react/sort-comp */
+/* eslint-disable no-multi-assign */
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable no-param-reassign */
 /* eslint-disable react/destructuring-assignment */
+/* eslint-disable react/react-in-jsx-scope */
 /* eslint-disable react/jsx-indent */
-/* eslint-disable no-unused-vars */
-import React, { Fragment } from 'react';
-import {Card, Table, Divider, Popconfirm, message, Input, Switch} from 'antd';
-import isEqual from 'lodash/isEqual';
+/* eslint-disable no-console */
+import React,{Component} from 'react';
+import {Card,Table,Form, Input, Divider, Select, Button} from 'antd';
+// import data from './data';
+import axios from '@/services/axios';
 
+const FormItem = Form.Item;
+const EditableContext = React.createContext();
+const EditableRow = ({ form, index, ...props }) => (
+    <EditableContext.Provider value={form}>
+        <tr {...props} />
+    </EditableContext.Provider>
+);
+const EditableFormRow = Form.create()(EditableRow);
 
-class TestTable extends React.Component{
-    index = 0;
-
-    cachOriginData = {};
-
-    constructor(props){
+class EditableCell extends Component {
+    constructor(props) {
         super(props);
-
-        this.state = {
-            data: props.value,
-            loading: false,
-            value: props.value,
-        }
     }
-
-    static getDerivedStateFromProps(nextProps, preState) {
-        if(isEqual(nextProps.value, preState.value)) {
-            return null;
-        }
-        return {
-            data: nextProps.value,
-            value: nextProps.value,
-        }
-    }
-
-    componentDidMount() {
-        // 构造一些初始数据
-        const data = [
-            {
-                id: 1,
-                name: 'student1',
-                sex: '男',
-                age: 12,
-                state: '已启用'
-            },
-            {
-                id: 2,
-                name: 'student2',
-                sex: '女',
-                age: 12,
-                state: '未启用'
-            },
-            {
-                id: 3,
-                name: 'student3',
-                sex: '女',
-                age: 12,
-                state: '已启用'
-            }
-        ];
-
-        this.setState({
-        dataSource : data
-        })
-        // this.props.onDidMount();
-    }
-    
-    // 获取每行数据并过滤
-    getRowByKey(key, newData){
-        const { data } = this.state;
-        return (newData || data).filter(item => item.key === key)[0];
-    }
-    
-    // 切换至可编辑状态
-    toggleEditable = (e, key) => {
-        e.preventDefault();
-        const { data } = this.state;
-        console.log(this.state.data);
-        const newData = data.map(item => ({ ...item }));
-        const target = this.getRowByKey(key, newData);
-        if(target){
-            // 编辑状态时保存原始数据
-            if(!target.editable) {
-                this.cachOriginData[key] = { ...target };
-            }
-            target.editable = !target.editable;
-            this.setState({ data: newData });
-        }
-    }
-    
-    // 添加成员
-    newMember = () => {
-        const { data } = this.state;
-        const newData = data.map(item => ({ ...item }));
-        newData.push({
-            key: `NEW_TEMP_ID_${this.index}`,
-            workId: '',
-            name: '',
-            department: '',
-            editable: true,
-            isNew: true,
-        });
-        this.index += 1;
-        this.setState({ data: newData });
-    }
-    
-    // 删除
-    remove(key) {
-        const { data } = this.state;
-        const { onchange } = this.props;
-        const newData = data.filter(item => item.key !== key);
-        this.setState({ data: newData });
-        onchange(newData);
-    }
-
-    handleKeyPress(e, key) {
-        if(e.key === 'Enter') {
-            this.saveRow(e, key);
-        }
-    }
-
-    handleFieldChange(e,fieldName,key) {
-        const { data } = this.state;
-        const newData = data.map(item => ({ ...item}));
-        const target = this.getRowByKey(key, newData);
-        if(target) {
-            target[fieldName] = e.target.value;
-            this.setState({ data: newData });
-        }
-    }
-    
-    // 保存 行
-    saveRow(e, key) {
-        e.persist();
-        this.setState({
-            loading:true,
-        });
-        setTimeout(() => {
-            if(this.clickedCancel) {
-                this.clickedCancel = false;
-                return;
-            }
-            const target = this.getRowByKey(key) || {};
-            if(!target.workId || !target.name || !target.department){
-                message.error("请填写相关信息！");
-                e.target.focus();
-                this.setState({
-                    loading: false,
-                });
-                return;
-            }
-            delete target.isNew;// 清除状态
-            this.toggleEditable(e, key);
-            const { data } = this.state;
-            const { onChange } = this.props;
-            onChange(data);
-            this.setState({
-                loading: false,
-            });
-        },500);
-    }
-
-    // 注销
-    cancel(e, key) {
-        this.clickedCancel = true;
-        e.preventDefault();
-        const { data } = this.state;
-        const newData = data.map(item => ({ ...item}));
-        const target = this.getRowByKey(key, newData);
-        if(this.cachOriginData[key]){
-            Object.assign(target, this.cachOriginData[key]);
-            delete this.cachOriginData[key];
-        }
-        target.editable = false;
-        this.setState({ data: newData });
-        this.clickedCancel = false;
-    }
-    
     render() {
-
-        // 定义表头，一般放在render()中
-        const columns = [
-            {
-                title: '编号',         
-                dataIndex: 'id',      
-                key: 'name',
-                render: (text, record) => {
-                    if(record.editable) {
-                        return (
-                            <Input 
-                                value={text}
-                                autoFocus
-                                onChange={e => this.handleFieldChange(e, 'name', record.key)}
-                                onKeyPress={e => this.handleKeyPress(e, record.key)}
-                                placeholder='编号'
-                            />
-                        );
-                    }
-                    return text;
-                }
-                
-            },
-            {
-                title:'姓名',
-                dataIndex:'name',
-                key: 'name',
-                render: (text, record) => {
-                    if(record.editable) {
-                        return (
-                            <Input 
-                                value={text}
-                                autoFocus
-                                onChange={e => this.handleFieldChange(e, 'name', record.key)}
-                                onKeyPress={e => this.handleKeyPress(e, record.key)}
-                                placeholder='姓名'
-                            />
-                        );
-                    }
-                    return text;
-                }
-            },
-            {
-                title:'性别',
-                dataIndex:'sex',
-                key: 'sex',
-                render: (text, record) => {
-                    if(record.editable) {
-                        return (
-                            <Input 
-                                value={text}
-                                autoFocus
-                                onChange={e => this.handleFieldChange(e, 'sex', record.key)}
-                                onKeyPress={e => this.handleKeyPress(e, record.key)}
-                                placeholder='性别'
-                            />
-                        );
-                    }
-                    return text;
-                }
-            },
-            {
-                title:'年龄',
-                dataIndex:'age',
-                key: 'age',
-                render: (text, record) => {
-                    if(record.editable) {
-                        return (
-                            <Input 
-                                value={text}
-                                autoFocus
-                                onChange={e => this.handleFieldChange(e, 'age', record.key)}
-                                onKeyPress={e => this.handleKeyPress(e, record.key)}
-                                placeholder='年龄'
-                            />
-                        );
-                    }
-                    return text;
-                }
-            },
-            {
-                title:'启用状态',
-                dataIndex:'state',
-                key: 'state',
-                render: (text, record) => {
-                    const checked = text === '已启用' ? true : false;
-                    return (
-                        <Switch 
-                            checkedChildren='已启用'
-                            unCheckedChildren='未启用'
-                            checked={checked}
-                            onChange={e => {
-                                const inAndOutStatus = e ? '已启用' : '未启用';
-                                updateInAndOut({ state }).then(res => {
-                                    if(res){
-                                        this.queryDataSource(false);
-                                    }
-                                })
-                            }}
-                        />
-                    )
-                    // if(record.editable) {
-                    //     return (
-                    //         <Input 
-                    //             value={text}
-                    //             autoFocus
-                    //             onChange={e => this.handleFieldChange(e, 'state', record.key)}
-                    //             onKeyPress={e => this.handleKeyPress(e, record.key)}
-                    //             placeholder='启用状态'
-                    //         />
-                    //     );
-                    // }
-                    // return text;
-                }
-            },
-            {
-                title:'操作',
-                dataIndex:'action',
-                render: (text, record) => {
-                    const { loading } = this.state;
-                    if(!!record.editable && loading){
-                        return null;
-                    }
-                    if(record.editable){
-                        if(record.isNew){
-                            return(
-                                <span>
-                                    <a onClick={e => this.saveRow(e, record.key)}>保存</a>
-                                    <Divider type="vertical" />
-                                    <Popconfirm title="是否删除此行？" onConfirm={() => this.remove(record.key)}>
-                                        <a>删除</a>
-                                    </Popconfirm>
-                                </span>
-                            );
-                        }
-                        return(
-                            <span>
-                                <a>保存</a>
-                                <Divider type="vertical" />
-                                <a>取消</a>
-                            </span>
-                        )
-                    }
-                    return (
-                        <span>
-                            <a onClick={e => this.toggleEditable(e, record.key)}>编辑</a> 
-                            <Divider type="vertical" />
-                            <Popconfirm title="是否删除此行？" onConfirm={() => this.remove(record.key)}>
-                                <a>删除</a>
-                            </Popconfirm>
-                        </span>
-                    );
-                }                
-            }
-        ];
-        
-        const { loading, data } = this.state;
-
+        const { renderDom, record, ...restProps } = this.props;
         return (
-            <Card>
-                <Table 
-                    columns={columns}
-                    dataSource={this.state.dataSource}
-                    pagination={false}
-                    
-                />
-            </Card>
-            // <div>
-            //     <Card title="基础表格">
-            //     {/* columns:指定表头
-            //     dataSource:指定数据源
-            //     borderd:加边框 */}
-            //     <Table columns={columns} dataSource={this.state.dataSource} bordered />
-            //     </Card>
-            // </div>
+            <td>
+                <EditableContext.Consumer>
+                    {form => {
+                        this.form = form;
+                        return renderDom(form, record);
+                    }}
+                </EditableContext.Consumer>
+            </td>
         )
     }
+}
+ 
+// eslint-disable-next-line react/no-multi-comp
 
+
+class TestTable extends Component{
+    constructor(props, context) {
+        super(props, context);
+        this.state = {
+            isRowOpen: false,
+            drawerVisible :false,
+            locale: {
+                emptyText: '暂无数据'
+            },
+            data: [],
+            terminalType: 1,
+        };
+
+        // 设置表格内容
+        this.columns = [
+            {
+                title: '终端编号',
+                width: '30%',
+                key: 'terminalNumber',
+                dataIndex: 'terminalNumber',
+                renderDom: (form, record) => {
+                    return record.type !== 'view' ? (
+                        <FormItem>
+                            {form.getFieldDecorator('terminalNumber',{
+                                rules: [{
+                                    required:true,
+                                    message:'请选择终端编号!'
+                                }],
+                                initialValue: record.terminalNumber
+                            })(
+                                <Input />
+                                // <Select
+                                //     placeholder='终端编号'
+                                //     filterOption={false}
+                                // >
+                                //     {this.state.data.map(v => <Select.Option key={v.terminalNumber}>{v.terminalNumber}</Select.Option>)}
+                                // </Select>
+                            )}
+                        </FormItem>
+                    ):(
+                        record.terminalNumber
+                    )
+                }
+            },
+            {
+                title: '终端类型',
+                width: '20%',
+                key: 'terminalType',
+                dataIndex: 'terminalType',
+                renderDom: (form, record) => {
+                    return record.type !== 'view' ? (
+                        <FormItem>
+                            {form.getFieldDecorator('terminalType',{
+                                rules: [
+                                    {
+                                        required: true,
+                                        message: '终端类型不能为空！'
+                                    }
+                                ],
+                                initialValue: record.terminalType
+                            })(
+                                // <Input />
+                                <Select
+                                    style={{width:'100px'}}
+                                    placeholder="终端类型"
+                                    filterOption={false}
+                                >
+                                    <Select.Option key='有人DTU'>有人DTU</Select.Option>
+                                    <Select.Option key='测智终端'>测智终端</Select.Option>
+                                </Select>
+                            )}
+                        </FormItem>
+                    ):(
+                        record.terminalType
+                    )
+                }
+            },
+            {
+                title: '连接状态',
+                width: '20%',
+                key: 'connectStatus',
+                dataIndex: 'connectStatus',
+                renderDom: (form, record) => {
+                    return record.type !== 'view' ? (
+                        <FormItem>
+                            {form.getFieldDecorator('connectStatus',{
+                                rules: [
+                                    {
+                                        required: true,
+                                        message: '连接状态不能为空！'
+                                    }
+                                ],
+                                initialValue: record.connectStatus
+                            })(
+                                // <Input />
+                                <Select
+                                    style={{width:'100px'}}
+                                    placeholder='连接状态'
+                                    filterOption={false}
+                                >
+                                    <Select.Option key='上线'>上线</Select.Option>
+                                    <Select.Option key='离线'>离线</Select.Option>
+                                </Select>
+                            )}
+                        </FormItem>
+                    ):(
+                        record.connectStatus
+                    )
+                }
+            },
+            {
+                title: '操作',
+                width: '30%',
+                renderDom: (form, record) => (
+                    <span>
+                        {record.type === 'new' && ( // 新增
+                            <span>
+                                <a href='javascript:;' onClick={e => this.addSubmit(form, record)}>
+                                    完成
+                                </a>
+                                <Divider type='vertical' />
+                                <a href='javascript:;' onClick={e => this.removeAdd(record)}>
+                                    取消
+                                </a>
+                            </span>
+                        )}
+                        {record.type === 'edit' && ( // 编辑状态
+                            <span>
+                                <a href='javascript:;' onClick={e => this.editSubmit(form, record)}>
+                                    完成
+                                </a>
+                                <Divider type='vertical' />
+                                <a href='javascript:;' onClick={e => this.giveUpUpdata(record)}>
+                                    取消
+                                </a>
+                                <Divider type='vertical' />
+                                <a href='javascript:;' onClick={e => this.delete(record)}>
+                                    删除
+                                </a>
+                            </span>
+                        )}
+                        {record.type === 'view' && ( // 初始状态
+                            <span>
+                                <a href='javascript:;' onClick={e => this.edit(record)}>
+                                    编辑
+                                </a>
+                                <Divider type='vertical' />
+                                <a href='javascript:;' onClick={e => this.delete(record)}>
+                                    删除
+                                </a>
+                            </span>
+                        )}
+                        {/* <Button 
+                            onCLick={() => {this.setState({ drawerVisible: true })}}
+                            style={{ marginLeft:'10px' }}
+
+                        >
+                            
+                                修改采集频率
+                        </Button> */}
+                    </span>
+                )
+            }
+        ]
+    }
+
+    // 获取后台接口数据
+    getTableData() {
+        axios.get(`/deviceConfig/listDeviceConfigByType`,{
+            params: {
+                'terminalType': this.state.terminalType
+            }
+        })
+        .then(res => {
+            if(res.data.code === 0) {
+                const terminalData = res.data.data;
+                this.initRowType(terminalData);
+                this.setState({terminalData});
+            } else {
+                console.log('该服务暂无终端!');
+            }
+        })     
+        .catch(function (error) {
+            console.log(error);
+        })
+    }
+    
+    // 初始化table表格
+    componentDidMount() {
+        this.getTableData();
+        // this.initRowType(data.getList);
+    }
+    
+    // 初始化
+    initRowType(data) {
+        for(let item of data){
+            item['type'] = 'view';
+        }
+        this.updateDataSource(data);
+    }
+
+    // 更新表格数据
+    updateDataSource(newData, isAddDisabled) {
+        let isRowOpen =
+            typeof isAddDisabled == 'boolean'
+            ? isAddDisabled
+            : newData.some(item => item.type === "new" || item.type === "edit");
+        this.setState({
+            isRowOpen,
+            data: newData
+        });
+    }
+
+    // 新增数据(已实现)
+    addRow = () => {
+        let { data } = this.state;
+        let newRecord = {
+            terminalNumber: '',
+            terminalType: '',
+            connectStatus: '',
+            type: 'new',
+            id: '',
+            key: Math.random(),// 设置唯一的key值
+        }
+        data.push(newRecord);
+        console.log(data);
+        this.updateDataSource(data);
+        console.log('添加行！！！');
+    }
+    
+    // 添加行，填入终端编号，选择终端类型和连接状态点击完成添加成功(已实现)
+    addSubmit(form, record) {
+        let { data } = this.state;
+    
+        form.validateFields((error, values) => {
+            if (error) {
+                return;
+            }
+            // values.existence = values.existence == "1" ? true : false;
+            let updateData = { ...record, ...values };
+            console.log(updateData);
+            setTimeout(res => {
+                updateData.type = "view";
+                data.pop();
+                data.push(updateData);
+                console.log(data);
+                this.updateDataSource(data);
+                // notification["success"]({ message: "添加成功！" });
+                console.log('添加成功!');
+            }, 500);
+        });
+    }
+
+    // 完成编辑，对某行已有内容完成编辑提交(已实现)
+    editSubmit(form, record) {
+        let { data } = this.state;
+        form.validateFields((error, values) => {
+            if (error) {
+                return;
+            }
+            // values.existence= values.existence == "1" ? true : false;
+            let updateData = { ...record, ...values };// 扩展运算符(spread/rest,收集所有剩余参数)
+            console.log(updateData);
+            // console.log(updateData);
+            setTimeout(_ => {
+            // 将updateData更新到dataSource
+            let newData = data.map(item => {
+                if (item.key === updateData.key) {
+                    item = Object.assign({}, updateData);
+                    item.type = "view";
+                }
+                return item;
+            });
+            console.log(newData);
+            // 修改数据传给后台
+            // axios({
+            //     method: 'PUT',
+            //     url: '/deviceConfig/modifyDeviceConfig',
+            //     data: newData
+            // }).then((res) => {
+            //     console.log(res);
+            //     if(res.data.code = 1){
+            //         console.log(res.data.msg);
+            //     }
+            // }).catch((err) => {
+            //     console.log(err);
+            // })
+
+            this.updateDataSource(newData);
+            console.log(this.state.terminalData);
+            // notification["success"]({ message: "修改成功！" });
+            console.log('修改成功！结束编辑！');
+            });
+        });
+    }
+
+    // 取消新增内容(已实现)
+    removeAdd(record) {
+        let { data } = this.state;
+        data.pop();
+        this.updateDataSource(data);
+    }
+
+    // 取消编辑(已实现)
+    giveUpUpdata(record) {
+        let { data } = this.state;
+        let editRow = data.find(item => item.key === record.key);
+        editRow.type = "view";
+        this.updateDataSource(data);
+    }
+
+    // 删除行，删除相关内容(已实现)
+    delete(record) {
+        let { data } = this.state;
+        // console.log(record);
+        setTimeout(res => {
+            let index = data.findIndex(item => item.key === record.key);
+            data.splice(index, 1);
+            this.updateDataSource(data);
+            console.log('删除成功!');
+        });
+    }
+
+    // 编辑行，对某行内容进行重新编辑(已实现)
+    edit(record) {
+        console.log('开始编辑...');
+        let { data } = this.state;
+        let newData = data.filter(item => {
+            console.log(record.key);
+            if (item.key === record.key) { 
+                item.type = "edit";
+                return item;
+            } else if (item.type !== "new") {
+                item.type = "view";
+                return item;
+            }
+        });
+        console.log(newData);
+        this.updateDataSource(newData, true);
+    }
+
+    render() {
+        const { terminalData, locale, isRowOpen } = this.state;
+        const components = {
+            body: {
+                row: EditableFormRow,
+                cell: EditableCell
+            }
+        };
+        const columns = this.columns.map(col => {
+            return {
+                ...col,
+                onCell: record => ({
+                    ...col,
+                    record
+                })
+            };
+        });
+        return (
+        <Card>
+            <Button
+                style={{ marginBottom: '10px' }}
+                disabled={isRowOpen}
+                onClick={this.addRow}
+            >
+                + 添加
+            </Button>
+            <Table 
+                components={components}
+                columns={columns}
+                dataSource={this.state.data}
+            />
+        </Card>
+        )
+    }
 }
 
 export default TestTable;
